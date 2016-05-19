@@ -11,8 +11,6 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "org.slf4j" % "slf4j-api" % "1.7.5",
-  "org.slf4j" % "slf4j-simple" % "1.7.5",
   "org.bitcoinj" % "bitcoinj-core" % "0.13.5",
   "im.tox" %% "tox4j" % "0.1-SNAPSHOT",
   "codes.reactive" %% "scala-time" % "0.3.0-SNAPSHOT"
