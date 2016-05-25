@@ -2,6 +2,7 @@ package com.machinomy.xicity
 
 import java.net.InetAddress
 import java.nio.ByteBuffer
+import java.util.Random
 
 import net.tomp2p.connection.Bindings
 import net.tomp2p.dht.{FutureSend, PeerBuilderDHT, PeerDHT}
@@ -60,4 +61,29 @@ object Peer {
       Future.failed(CanNotConnectException())
     }
   }
+}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+
+object Test {
+
+  def main() = {
+
+    val peerNumber = new Number160(new Random)
+
+    Peer.build(peerNumber, Seq("10.116.118.24")).onSuccess {
+      case peer: Peer =>
+        peer.reply { (sender, message) =>
+          "Hello World".getBytes()
+        }
+    }
+
+    Peer.build(new Number160(new Random), Seq("10.116.118.24")).onSuccess {
+      case peer: Peer =>
+        val reply = peer.request(peerNumber, "Hello Peer".getBytes).orNull
+
+        println(reply.toString)
+    }
+  }
+
 }
