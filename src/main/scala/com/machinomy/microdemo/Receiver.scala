@@ -7,8 +7,6 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.{ListenableFuture, SettableFuture}
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.LazyLogging
-import im.tox.tox4j.core.data.ToxSecretKey
-import im.tox.tox4j.core.options.{SaveDataOptions, ToxOptions}
 import org.bitcoin.paymentchannel.Protos.{PaymentAck, Settlement}
 import org.bitcoinj.core.{Coin, Sha256Hash, Utils, WalletExtension}
 import org.bitcoinj.kits.WalletAppKit
@@ -71,11 +69,4 @@ object Receiver extends App {
   val handler = new Handler()
 
   new PaymentChannelServerListener(appKit.peerGroup(), appKit.wallet(), 15, Coin.valueOf(minimumDeposit), handler).bindAndStart(8484)
-
-  val secretKey = ToxUtil.fromHex("CF47FC2891F617E244B48E3004DABA6B3BD8B56AA20BA3E062207B5E5CB4895D")
-  val options = ToxOptions(
-    saveData = SaveDataOptions.SecretKey(ToxSecretKey(secretKey))
-  )
-  val toxNode = ToxUtil.buildNode(options)
-  println(toxNode.getPublicKey)
 }
