@@ -21,17 +21,11 @@ class Master {
     //val master = new PeerBuilder(serverNumber).ports(PORT).bindings(bindings).start()
     println(s"Started listening to ${DiscoverNetworks.discoverInterfaces(bindings)}")
     println(s"outside address is ${master.peerAddress()}")
-
-    val dht = master.get(new Number160(10)).start()
-    dht.awaitUninterruptibly()
     while(true) {
       println("Another Iteration")
-      if (dht.data() != null) {
-        println(dht.data().`object`())
-      }
       for (peerAddress <- master.peerBean().peerMap().all()) {
         println(s"PeerAddress: $peerAddress")
-        val fcc = master.peer().connectionBean().reservation().create(1, 1)
+        /*val fcc = master.peer().connectionBean().reservation().create(1, 1)
         fcc.awaitUninterruptibly()
         val channelCreator = fcc.channelCreator()
 
@@ -52,7 +46,7 @@ class Master {
           println(s"Peer $peerAddress is online/udp")
         } else {
           println(s"Peer $peerAddress is offline/udp")
-        }
+        }*/
       }
       Thread.sleep(1500)
     }
