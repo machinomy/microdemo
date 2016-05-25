@@ -1,3 +1,4 @@
+import java.net.InetAddress
 import java.util.Random
 
 import net.tomp2p.connection.{Bindings, DefaultConnectionConfiguration, DiscoverNetworks}
@@ -15,7 +16,7 @@ class Master {
     val PORT = 9333
 
     val serverNumber = new Number160(new Random)
-    val bindings = new Bindings().listenAny()
+    val bindings = new Bindings().listenAny().addAddress(InetAddress.getByName("104.236.70.68"))
     val master = new PeerBuilderDHT(new PeerBuilder(serverNumber).ports(PORT).bindings(bindings).start()).start()
     //val master = new PeerBuilder(serverNumber).ports(PORT).bindings(bindings).start()
     println(s"Started listening to ${DiscoverNetworks.discoverInterfaces(bindings)}")
