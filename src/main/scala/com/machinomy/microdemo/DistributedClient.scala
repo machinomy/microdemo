@@ -1,4 +1,4 @@
-package one.eliot.microdemo
+package com.machinomy.microdemo
 
 import im.tox.core.network.Port
 import im.tox.tox4j._

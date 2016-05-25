@@ -1,10 +1,4 @@
-import im.tox.core.network.Port
-import im.tox.tox4j._
-import im.tox.tox4j.core.callbacks.ToxCoreEventListener
-import im.tox.tox4j.core.data._
-import im.tox.tox4j.core.enums._
-import im.tox.tox4j.core.options.{SaveDataOptions, ToxOptions}
-import one.eliot.microdemo.ToxUtil
+import com.machinomy.microdemo.ToxUtil
 
 class TestEventListener(id: Int) extends ToxCoreEventListener[Unit] {
 

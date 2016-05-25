@@ -1,4 +1,4 @@
-package one.eliot.microdemo
+package com.machinomy.microdemo
 
 import im.tox.tox4j.core.ToxCore
 import im.tox.tox4j.core.exceptions.ToxNewException

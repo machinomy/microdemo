@@ -1,4 +1,4 @@
-package one.eliot.microdemo
+package com.machinomy.microdemo
 
 import java.io.File
 import java.net.SocketAddress
