@@ -46,20 +46,23 @@ object Peer {
   }
 
 
-  def startClient(rcv: PeerCallback) = {
+  def start(rcv: PeerCallback) = {
     logic = system.actorOf(Logic.props(rcv))
     val peerNode = system.actorOf(PeerNode.props(identifier, logic))
     val seeds = Set(Connector("45.55.122.116"))
 
+    peerNode ! PeerNode.StartServerCommand(Connector("0.0.0.0"))
     peerNode ! PeerNode.StartClientsCommand(2, seeds)
   }
 
-  def startServer(rcv: PeerCallback) = {
-    logic = system.actorOf(Logic.props(rcv))
-    val peerNode = system.actorOf(PeerNode.props(identifier, logic))
-
-    peerNode ! PeerNode.StartServerCommand(Connector("0.0.0.0"))
-  }
+//  def startServer(rcv: PeerCallback) = {
+//    logic = system.actorOf(Logic.props(rcv))
+//    val peerNode = system.actorOf(PeerNode.props(identifier, logic))
+//    val seeds = Set(Connector("45.55.122.116"))
+//
+//        peerNode ! PeerNode.StartServerCommand(Connector("0.0.0.0"))
+//    peerNode ! PeerNode.StartClientsCommand(2, seeds)
+//  }
 
 
   def send(to: Identifier, message: Array[Byte]) = {

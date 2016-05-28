@@ -104,9 +104,13 @@ object Sender extends App with LazyLogging {
 
     val latch = new CountDownLatch(1)
 
-    Peer.startClient {
+    Peer.start {
       case Peer.ConnectedEvent() =>
-        wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(100)))
+        try {
+          wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(100)))
+        } catch {
+          case _: Throwable => //pass
+        }
         wireParser.connectionOpened()
         println("CONNECTED ~~~~~~~~~~")
 
