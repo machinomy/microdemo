@@ -35,7 +35,7 @@ object Peer {
         handler(ReceivedEvent(msg.from, msg.to, msg.text, msg.expiration))
       case msg @ Logic.SendMessage(to, message) =>
         println(s"========== sending message to ${to.toString}")
-        peerNodeRef ! PeerNode.SendSingleMessageCommand(identifier, to, message, 1.minute.seconds)
+        peerNodeRef ! PeerNode.SendSingleMessageCommand(identifier, to, message, DateTime.now.getMillis / 1000 + 1.minute.seconds)
       case e => log.error(e.toString)
     }
   }
