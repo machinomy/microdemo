@@ -2,7 +2,7 @@ package com.machinomy.microdemo
 
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import com.github.nscala_time.time.Imports._
-import com.machinomy.xicity.Identifier
+import com.machinomy.xicity._
 
 
 object Peer {
@@ -15,7 +15,7 @@ object Peer {
   import com.machinomy.xicity.{Connector, Identifier, PeerNode}
   lazy val system = ActorSystem()
 
-  val identifier = new Identifier(34)
+  val identifier = new Identifier(100)
 
   var logic: ActorRef = null
 
@@ -49,7 +49,10 @@ object Peer {
   def start(rcv: PeerCallback) = {
     logic = system.actorOf(Logic.props(rcv))
     val peerNode = system.actorOf(PeerNode.props(identifier, logic))
+    val seeds = Set(Connector("45.55.122.116"))
+
     peerNode ! PeerNode.StartServerCommand(Connector("0.0.0.0"))
+    peerNode ! PeerNode.StartClientsCommand(2, seeds)
   }
 
   def send(to: Identifier, message: Array[Byte]) = {
