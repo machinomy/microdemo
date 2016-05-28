@@ -107,11 +107,15 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
   private var eventHandler: XicityServerConnectionEventHandler = null
 
   def bindAndStart() = {
-    Peer.start {
+    Peer.startServer {
       case Peer.ConnectedEvent() =>
         println("CONNECTED ~~~~~~~~~~")
       case Peer.ReceivedEvent(from, to, message, expiration) =>
-        socketProtobufHandler.setWriteTarget(new XicityWriteTarget(from))
+        try {
+          socketProtobufHandler.setWriteTarget(new XicityWriteTarget(from))
+        } catch {
+          case _: Throwable => //pass
+        }
         socketProtobufHandler.receiveBytes(ByteBuffer.wrap(message))
     }
   }

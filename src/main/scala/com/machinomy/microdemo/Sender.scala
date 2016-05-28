@@ -102,7 +102,7 @@ object Sender extends App with LazyLogging {
       }
     }, Protos.TwoWayChannelMessage.getDefaultInstance, Short.MaxValue, 15 * 1000)
 
-    Peer.start {
+    Peer.startClient {
       case Peer.ConnectedEvent() =>
         wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(100)))
         wireParser.connectionOpened()
