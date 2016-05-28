@@ -15,7 +15,7 @@ object Peer {
   import com.machinomy.xicity.{Connector, Identifier, PeerNode}
   lazy val system = ActorSystem()
 
-  val identifier = new Identifier(100)
+  var identifier: Identifier = null
 
   var logic: ActorRef = null
 
@@ -30,9 +30,11 @@ object Peer {
         log info "DID START"
         handler(ConnectedEvent())
       case msg @ PeerNode.ReceivedSingleMessage(from, to, text, expiration) =>
-        log debug msg.toString
+//        log info msg.toString
+        println(s"------------ received message from ${from.toString}")
         handler(ReceivedEvent(msg.from, msg.to, msg.text, msg.expiration))
       case msg @ Logic.SendMessage(to, message) =>
+        println(s"========== sending message to ${to.toString}")
         peerNodeRef ! PeerNode.SendSingleMessageCommand(identifier, to, message, 1.minute.seconds)
       case e => log.error(e.toString)
     }

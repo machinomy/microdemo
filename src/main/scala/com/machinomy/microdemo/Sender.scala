@@ -86,9 +86,8 @@ object Sender extends App with LazyLogging {
           channelClient.receiveMessage(msg)
         }
         catch {
-          case e: InsufficientMoneyException => {
-//            channelOpenFuture.setException(e)
-          }
+          case e: InsufficientMoneyException =>
+            //            channelOpenFuture.setException(e)
         }
       }
 
@@ -104,6 +103,7 @@ object Sender extends App with LazyLogging {
 
     val latch = new CountDownLatch(1)
 
+    Peer.identifier = new Identifier(34)
     Peer.start {
       case Peer.ConnectedEvent() =>
         try {
@@ -114,23 +114,24 @@ object Sender extends App with LazyLogging {
         wireParser.connectionOpened()
         println("CONNECTED ~~~~~~~~~~")
 
-        val alreadySpent = channelClient.state().getValueSpent
-        logger.info(s"Connected. Trying to make $times micropayments. Already paid $alreadySpent on the channel")
-        val quantumPayment = Coin.MILLICOIN
-        for (i <- 1 to times) {
-          val request = TransactionSigner.newBuilder.setClassName(i.toString).build()
-          val listenableFuture: ListenableFuture[PaymentIncrementAck] = channelClient.incrementPayment(quantumPayment, request.toByteString, null)
-          val incrementAck: PaymentIncrementAck = Uninterruptibles.getUninterruptibly(listenableFuture)
-          val response: TransactionSigner = TransactionSigner.parseFrom(incrementAck.getInfo)
-          val gotValue = response.getClassName.toInt
-          logger.info(s"Sucessfully received $gotValue calculated on base of $i")
-          logger.info(s"Sucessfully sent $quantumPayment, ${channelClient.state().getValueRefunded} remains on channel")
-        }
-        if (channelClient.state().getValueRefunded.compareTo(channelSize) < 0) {
-          logger.info("Settling the channel")
-          channelClient.settle()
-        }
-        latch.countDown()
+//        println(channelClient, channelClient.state())
+//        val alreadySpent = channelClient.state().getValueSpent
+//        logger.info(s"Connected. Trying to make $times micropayments. Already paid $alreadySpent on the channel")
+//        val quantumPayment = Coin.MILLICOIN
+//        for (i <- 1 to times) {
+//          val request = TransactionSigner.newBuilder.setClassName(i.toString).build()
+//          val listenableFuture: ListenableFuture[PaymentIncrementAck] = channelClient.incrementPayment(quantumPayment, request.toByteString, null)
+//          val incrementAck: PaymentIncrementAck = Uninterruptibles.getUninterruptibly(listenableFuture)
+//          val response: TransactionSigner = TransactionSigner.parseFrom(incrementAck.getInfo)
+//          val gotValue = response.getClassName.toInt
+//          logger.info(s"Sucessfully received $gotValue calculated on base of $i")
+//          logger.info(s"Sucessfully sent $quantumPayment, ${channelClient.state().getValueRefunded} remains on channel")
+//        }
+//        if (channelClient.state().getValueRefunded.compareTo(channelSize) < 0) {
+//          logger.info("Settling the channel")
+//          channelClient.settle()
+//        }
+//        latch.countDown()
 
 
       case Peer.ReceivedEvent(from, to, message, expiration) =>
@@ -138,7 +139,7 @@ object Sender extends App with LazyLogging {
     }
 
 
-    //    val clientConnection = new PaymentChannelClientConnection(server, timeout, appKit.wallet(), myKey, channelSize, channelId)
+//        val clientConnection = new PaymentChannelClientConnection(server, timeout, appKit.wallet(), myKey, channelSize, channelId)
 
 //    Futures.addCallback(clientConnection.getChannelOpenFuture, new FutureCallback[PaymentChannelClientConnection] {
 //      override def onFailure(t: Throwable): Unit = {

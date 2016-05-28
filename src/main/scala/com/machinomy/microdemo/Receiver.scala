@@ -107,6 +107,7 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
   private var eventHandler: XicityServerConnectionEventHandler = null
 
   def bindAndStart() = {
+    Peer.identifier = new Identifier(100)
     Peer.start {
       case Peer.ConnectedEvent() =>
         println("CONNECTED ~~~~~~~~~~")
