@@ -46,7 +46,7 @@ object Sender extends App with LazyLogging {
   val serverSocketAddress = new XicityAddress(new Identifier(100))
   val channelId = serverHost
   logger.info("1:...")
-//  openAndSend(timeout, serverSocketAddress, channelId, 10)
+  openAndSend(timeout, serverSocketAddress, channelId, 10)
 
   def waitForRefill(amount: Coin): Unit = {
     val amountPlusFee = amount.add(Wallet.SendRequest.DEFAULT_FEE_PER_KB)
@@ -58,6 +58,7 @@ object Sender extends App with LazyLogging {
   }
 
   def openAndSend(timeout: Int, server: XicityAddress, channelId: String, times: Int): Unit = {
+
     lazy val channelClient = new PaymentChannelClient(appKit.wallet(), myKey, channelSize, Sha256Hash.of(server.getBytes), PaymentChannelClient.DEFAULT_TIME_WINDOW, null, new IPaymentChannelClient.ClientConnection() {
       def sendToServer(msg: Protos.TwoWayChannelMessage) {
         wireParser.write(msg)
@@ -101,10 +102,18 @@ object Sender extends App with LazyLogging {
       }
     }, Protos.TwoWayChannelMessage.getDefaultInstance, Short.MaxValue, 15 * 1000)
 
-    wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(100)))
-    wireParser.connectionOpened()
+    Peer.start {
+      case Peer.ConnectedEvent() =>
+        wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(100)))
+        wireParser.connectionOpened()
+        println("CONNECTED ~~~~~~~~~~")
 
-//    val clientConnection = new PaymentChannelClientConnection(server, timeout, appKit.wallet(), myKey, channelSize, channelId)
+      case Peer.ReceivedEvent(from, to, message, expiration) =>
+        wireParser.receiveBytes(ByteBuffer.wrap(message))
+    }
+
+
+    //    val clientConnection = new PaymentChannelClientConnection(server, timeout, appKit.wallet(), myKey, channelSize, channelId)
 //    val latch = new CountDownLatch(1)
 //    Futures.addCallback(clientConnection.getChannelOpenFuture, new FutureCallback[PaymentChannelClientConnection] {
 //      override def onFailure(t: Throwable): Unit = {
@@ -132,25 +141,23 @@ object Sender extends App with LazyLogging {
 //      }
 //    }, Threading.USER_THREAD)
 
-    val alreadySpent = channelClient.state().getValueSpent
-    logger.info(s"Connected. Trying to make $times micropayments. Already paid $alreadySpent on the channel")
-    val quantumPayment = Coin.MILLICOIN
-    for (i <- 1 to times) {
-      val request = TransactionSigner.newBuilder.setClassName(i.toString).build()
-      val listenableFuture: ListenableFuture[PaymentIncrementAck] = channelClient.incrementPayment(quantumPayment, request.toByteString, null)
-      val incrementAck: PaymentIncrementAck = Uninterruptibles.getUninterruptibly(listenableFuture)
-      val response: TransactionSigner = TransactionSigner.parseFrom(incrementAck.getInfo)
-      val gotValue = response.getClassName.toInt
-      logger.info(s"Sucessfully received $gotValue calculated on base of $i")
-      logger.info(s"Sucessfully sent $quantumPayment, ${channelClient.state().getValueRefunded} remains on channel")
-    }
-    if (channelClient.state().getValueRefunded.compareTo(channelSize) < 0) {
-      logger.info("Settling the channel")
-      channelClient.settle()
-    }
+//    val alreadySpent = channelClient.state().getValueSpent
+//    logger.info(s"Connected. Trying to make $times micropayments. Already paid $alreadySpent on the channel")
+//    val quantumPayment = Coin.MILLICOIN
+//    for (i <- 1 to times) {
+//      val request = TransactionSigner.newBuilder.setClassName(i.toString).build()
+//      val listenableFuture: ListenableFuture[PaymentIncrementAck] = channelClient.incrementPayment(quantumPayment, request.toByteString, null)
+//      val incrementAck: PaymentIncrementAck = Uninterruptibles.getUninterruptibly(listenableFuture)
+//      val response: TransactionSigner = TransactionSigner.parseFrom(incrementAck.getInfo)
+//      val gotValue = response.getClassName.toInt
+//      logger.info(s"Sucessfully received $gotValue calculated on base of $i")
+//      logger.info(s"Sucessfully sent $quantumPayment, ${channelClient.state().getValueRefunded} remains on channel")
+//    }
+//    if (channelClient.state().getValueRefunded.compareTo(channelSize) < 0) {
+//      logger.info("Settling the channel")
+//      channelClient.settle()
+//    }
 //    latch.countDown()
-
-    Peer.start {(from, to, message, expiration) => wireParser.receiveBytes(ByteBuffer.wrap(message))}
 
 //    latch.await()
   }
