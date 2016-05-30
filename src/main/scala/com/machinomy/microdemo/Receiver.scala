@@ -93,10 +93,10 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
     }
 
     def connectionOpen(handler: ProtobufParser[Protos.TwoWayChannelMessage]) {
-      val eventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(100)))
-      if (eventHandler == null) handler.closeConnection()
+      val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(100)))
+      if (newEventHandler == null) handler.closeConnection()
       else {
-        XicityPaymentChannelServerListener.this.eventHandler = eventHandler
+        eventHandler = newEventHandler
 //        XicityPaymentChannelServerListener.this.eventHandler.setConnectionChannel(socketProtobufHandler)
         paymentChannelManager.connectionOpen()
       }
@@ -111,12 +111,16 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
     Peer.start {
       case Peer.ConnectedEvent() =>
         println("CONNECTED ~~~~~~~~~~")
+        val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(100)))
+        eventHandler = newEventHandler
+        paymentChannelManager.connectionOpen()
       case Peer.ReceivedEvent(from, to, message, expiration) =>
         try {
           socketProtobufHandler.setWriteTarget(new XicityWriteTarget(from))
         } catch {
           case _: Throwable => //pass
         }
+        println(s"||||||||||||||||||| ${message.map("%02x".format(_)).mkString("")}")
         socketProtobufHandler.receiveBytes(ByteBuffer.wrap(message))
     }
   }
