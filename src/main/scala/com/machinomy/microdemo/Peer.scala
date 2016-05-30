@@ -33,7 +33,7 @@ object Peer {
 //        log info msg.toString
         println(s"------------ received message from ${from.toString}")
         handler(ReceivedEvent(msg.from, msg.to, msg.text, msg.expiration))
-      case msg @ Logic.SendMessage(to, message) =>
+      case Logic.SendMessage(to, message) =>
         println(s"========== sending message to ${to.toString}")
         peerNodeRef ! PeerNode.SendSingleMessageCommand(identifier, to, message, DateTime.now.getMillis / 1000 + 1.minute.seconds)
       case e => log.error(e.toString)
@@ -68,7 +68,10 @@ object Peer {
 
 
   def send(to: Identifier, message: Array[Byte]) = {
-    Option[ActorRef](logic) foreach { _ ! Logic.SendMessage(to, message) }
+    Option[ActorRef](logic) foreach { x: ActorRef =>
+      println("Peer.send: ", x)
+      x ! Logic.SendMessage(to, message)
+    }
   }
 
 //  type PeerHandler = (Identifier, Identifier, Array[Byte], Long) => Unit
