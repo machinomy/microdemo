@@ -1,8 +1,12 @@
 package com.machinomy.microdemo
 
+import java.util.concurrent.Executors
+
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import com.github.nscala_time.time.Imports._
 import com.machinomy.xicity._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 
 object Peer {
@@ -36,7 +40,9 @@ object Peer {
       case Logic.SendMessage(to, message) =>
         println(s"========== sending message to ${to.toString}")
         peerNodeRef ! PeerNode.SendSingleMessageCommand(identifier, to, message, DateTime.now.getMillis / 1000 + 1.minute.seconds)
-      case e => log.error(e.toString)
+      case e =>
+        log.info(e.toString)
+        log.info("++++++++++++++++++++++")
     }
   }
 
@@ -68,6 +74,7 @@ object Peer {
 
 
   def send(to: Identifier, message: Array[Byte]) = {
+    println(logic)
     Option[ActorRef](logic) foreach { x: ActorRef =>
       println("Peer.send: ", x)
       x ! Logic.SendMessage(to, message)
