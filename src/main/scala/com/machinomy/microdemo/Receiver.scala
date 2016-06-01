@@ -9,7 +9,7 @@ import akka.util.Timeout
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.{ListenableFuture, SettableFuture}
 import com.google.protobuf.ByteString
-import com.machinomy.xicity.Identifier
+import com.machinomy.xicity.{Connector, Identifier}
 import com.typesafe.scalalogging.LazyLogging
 import org.bitcoin.paymentchannel.Protos
 import org.bitcoinj.core._
@@ -93,7 +93,7 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
     }
 
     def connectionOpen(handler: ProtobufParser[Protos.TwoWayChannelMessage]) {
-      val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(100)))
+      val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(128)))
       if (newEventHandler == null) handler.closeConnection()
       else {
         eventHandler = newEventHandler
@@ -107,11 +107,11 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
   private var eventHandler: XicityServerConnectionEventHandler = null
 
   def bindAndStart() = {
-    Peer.identifier = new Identifier(100)
-    Peer.start {
+    Peer.identifier = new Identifier(128)
+    Peer.start({
       case Peer.ConnectedEvent() =>
         println("CONNECTED ~~~~~~~~~~")
-        val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(100)))
+        val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(128)))
         eventHandler = newEventHandler
         paymentChannelManager.connectionOpen()
       case Peer.ReceivedEvent(from, to, message, expiration) =>
@@ -122,7 +122,7 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
         }
         println(s"||||||||||||||||||| ${message.map("%02x".format(_)).mkString("")}")
         socketProtobufHandler.receiveBytes(ByteBuffer.wrap(message))
-    }
+    })
   }
 }
 

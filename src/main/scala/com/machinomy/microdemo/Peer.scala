@@ -54,12 +54,12 @@ object Peer {
   }
 
 
-  def start(rcv: PeerCallback) = {
+  def start(rcv: PeerCallback, myself: Connector = Connector("0.0.0.0"), seeds: Set[Connector] = Set(Connector("45.55.122.116"))) = {
     logic = system.actorOf(Logic.props(rcv))
     val peerNode = system.actorOf(PeerNode.props(identifier, logic))
-    val seeds = Set(Connector("45.55.122.116"))
+//    val seeds = Set(Connector("45.55.122.116"))
 
-    peerNode ! PeerNode.StartServerCommand(Connector("0.0.0.0"))
+    peerNode ! PeerNode.StartServerCommand(myself)
     peerNode ! PeerNode.StartClientsCommand(2, seeds)
   }
 

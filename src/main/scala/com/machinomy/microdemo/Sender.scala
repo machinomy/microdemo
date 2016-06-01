@@ -9,7 +9,7 @@ import java.util.concurrent.{Executors, CountDownLatch}
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent._
 import com.google.protobuf.ByteString
-import com.machinomy.xicity.Identifier
+import com.machinomy.xicity.{Connector, Identifier}
 import com.typesafe.scalalogging.LazyLogging
 import org.bitcoin.paymentchannel.Protos
 import org.bitcoinj.kits.WalletAppKit
@@ -29,7 +29,7 @@ object Sender extends App with LazyLogging {
   val serverHost = "localhost"
   val serverPort = 8484
 
-  val channelSize = Coin.COIN.divide(10)
+  val channelSize = Coin.MILLICOIN.multiply(5).multiply(10)
   val myKey = new ECKey()
   val network = TestNet3Params.get()
   val timeout = 15
@@ -76,16 +76,16 @@ object Sender extends App with LazyLogging {
     def sendTransactions(): Unit = {
       println(channelClient, channelClient.state())
       val alreadySpent = channelClient.state().getValueSpent
-      logger.info(s"Connected. Trying to make 5 micropayments. Already paid $alreadySpent on the channel")
-      val quantumPayment = Coin.MILLICOIN
-      for (i <- 1 to 5) {
-//        val request = TransactionSigner.newBuilder.setClassName(i.toString).build()
+      logger.info(s"Connected. Trying to make 1 micropayment. Already paid $alreadySpent on the channel")
+      val quantumPayment = Coin.MILLICOIN.multiply(5)
+//      for (i <- 1 to 5) {
+        val request = TransactionSigner.newBuilder.setClassName("1").build()
 //        val lock = new ReentrantLock()
 //        lock.lock()
-//        var listenableFuture: ListenableFuture[PaymentIncrementAck] = null
+        var listenableFuture: ListenableFuture[PaymentIncrementAck] = null
 //        val incrementThread = new Thread(new Runnable {
 //          override def run(): Unit = {
-//            listenableFuture = channelClient.incrementPayment(quantumPayment, request.toByteString, null)
+        listenableFuture = channelClient.incrementPayment(quantumPayment, request.toByteString, null)
 //            lock.unlock()
 //          }
 //        })
@@ -96,15 +96,21 @@ object Sender extends App with LazyLogging {
 //        lock.unlock()
 //
 //        val incrementAck: PaymentIncrementAck = Uninterruptibles.getUninterruptibly(listenableFuture)
-//        val response: TransactionSigner = TransactionSigner.parseFrom(incrementAck.getInfo)
-//        val gotValue = response.getClassName.toInt
-//        logger.info(s"Sucessfully received $gotValue calculated on base of $i")
-//        logger.info(s"Sucessfully sent $quantumPayment, ${channelClient.state().getValueRefunded} remains on channel")
-      }
-      if (channelClient.state().getValueRefunded.compareTo(channelSize) < 0) {
-        logger.info("Settling the channel")
-        channelClient.settle()
-      }
+      listenableFuture.addListener(new Runnable {
+        override def run(): Unit = {
+          val incrementAck: PaymentIncrementAck = listenableFuture.get()
+
+          val response: TransactionSigner = TransactionSigner.parseFrom(incrementAck.getInfo)
+          val gotValue = response.getClassName.toInt
+          logger.info(s"Sucessfully received $gotValue calculated on base of 1")
+          logger.info(s"Sucessfully sent $quantumPayment, ${channelClient.state().getValueRefunded} remains on channel")
+          //      }
+          if (channelClient.state().getValueRefunded.compareTo(channelSize) < 0) {
+            logger.info("Settling the channel")
+            channelClient.settle()
+          }
+        }
+      }, MoreExecutors.sameThreadExecutor)
       //    latch.countDown()
     }
 
@@ -137,7 +143,8 @@ object Sender extends App with LazyLogging {
           channelClient.receiveMessage(msg)
         }
         catch {
-          case e: InsufficientMoneyException =>
+          case e: Throwable => println(s"ERROR: ${e.toString}")
+//          case e: InsufficientMoneyException =>
             //            channelOpenFuture.setException(e)
         }
       }
@@ -155,7 +162,7 @@ object Sender extends App with LazyLogging {
 
     Peer.identifier = new Identifier(34)
     println("PEER START ...................")
-    Peer.start {
+    Peer.start({
       case Peer.ConnectedEvent() =>
         try {
           wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(128)))
@@ -168,7 +175,7 @@ object Sender extends App with LazyLogging {
 
       case Peer.ReceivedEvent(from, to, message, expiration) =>
         wireParser.receiveBytes(ByteBuffer.wrap(message))
-    }
+    })
 
 
 //        val clientConnection = new PaymentChannelClientConnection(server, timeout, appKit.wallet(), myKey, channelSize, channelId)
