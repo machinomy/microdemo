@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Electirc Demo</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+<div></div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var uniqueId = Array(16).join().split(",").map((m) => Math.random() * 25 + 65).map((m) => ~~m).map((m) => String.fromCharCode(m)).join("")
+        var ws = new WebSocket("ws://127.0.0.1:8888/ws?name=" + uniqueId);
+
+        ws.onmessage = function (event) {
+            document.querySelector("div").innerHTML += event.data + "<br/>";
+        }
+    });
+</script>
+</body>
+</html>
