@@ -6,7 +6,8 @@ scalaVersion := "2.11.8"
 
 resolvers ++= Seq(
   "Sonatype" at "https://oss.sonatype.org/content/repositories/snapshots/",
-  "tomp2p.net" at "http://tomp2p.net/dev/mvn/"
+  "tomp2p.net" at "http://tomp2p.net/dev/mvn/",
+  "Machinomy" at "http://machinomy.com:8081/artifactory/libs-snapshot-local/"
 )
 
 libraryDependencies ++= Seq(
@@ -21,5 +22,5 @@ libraryDependencies ++= Seq(
   "io.argonaut" %% "argonaut" % "6.1",
   "org.slf4j" % "slf4j-simple" % "1.7.21",
   "net.tomp2p" % "tomp2p-all" % "5.0-Beta8",
-  "com.machinomy" %% "xicity" % "0.1"
+  "com.machinomy" %% "xicity" % "0.0.1-SNAPSHOT"
 )

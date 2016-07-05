@@ -1,12 +1,8 @@
 package com.machinomy.microdemo
 
-import java.util.concurrent.Executors
-
 import akka.actor.{Props, ActorRef, ActorLogging, Actor}
 import com.github.nscala_time.time.Imports._
 import com.machinomy.xicity._
-
-import scala.concurrent.{ExecutionContext, Future}
 
 
 object Peer {
@@ -34,7 +30,6 @@ object Peer {
         log info "DID START"
         handler(ConnectedEvent())
       case msg @ PeerNode.ReceivedSingleMessage(from, to, text, expiration) =>
-//        log info msg.toString
         println(s"------------ received message from ${from.toString}")
         handler(ReceivedEvent(msg.from, msg.to, msg.text, msg.expiration))
       case Logic.SendMessage(to, message) =>
@@ -57,21 +52,10 @@ object Peer {
   def start(rcv: PeerCallback, myself: Connector = Connector("0.0.0.0"), seeds: Set[Connector] = Set(Connector("45.55.122.116"))) = {
     logic = system.actorOf(Logic.props(rcv))
     val peerNode = system.actorOf(PeerNode.props(identifier, logic))
-//    val seeds = Set(Connector("45.55.122.116"))
 
     peerNode ! PeerNode.StartServerCommand(myself)
     peerNode ! PeerNode.StartClientsCommand(2, seeds)
   }
-
-//  def startServer(rcv: PeerCallback) = {
-//    logic = system.actorOf(Logic.props(rcv))
-//    val peerNode = system.actorOf(PeerNode.props(identifier, logic))
-//    val seeds = Set(Connector("45.55.122.116"))
-//
-//        peerNode ! PeerNode.StartServerCommand(Connector("0.0.0.0"))
-//    peerNode ! PeerNode.StartClientsCommand(2, seeds)
-//  }
-
 
   def send(to: Identifier, message: Array[Byte]) = {
     println(logic)
@@ -80,32 +64,4 @@ object Peer {
       x ! Logic.SendMessage(to, message)
     }
   }
-
-//  type PeerHandler = (Identifier, Identifier, Array[Byte], Long) => Unit
-//
-//  import com.machinomy.xicity.{Connector, Identifier, PeerNode}
-//
-//  private[this] lazy val identifier = new Identifier(34)
-//
-//  private[this] var handler: PeerHandler = null
-//
-//  private[this] lazy val peerNode = {
-//    import akka.actor.ActorSystem
-//
-//    val system = ActorSystem()
-//    system.actorOf(PeerNode.props(identifier, handler))
-//  }
-//
-//  def send(to: Identifier, message: Array[Byte]) = {
-//    val cmd = PeerNode.SendSingleMessageCommand(identifier, to, message, DateTime.now.getMillis / 1000 + 5)
-//    peerNode ! cmd
-//  }
-//
-//  def start(rcv: PeerHandler) = {
-//    handler = rcv
-//    val seeds = Set(Connector("45.55.122.116"))
-//    peerNode ! PeerNode.StartClientsCommand(2, seeds)
-//  }
-
-
 }
