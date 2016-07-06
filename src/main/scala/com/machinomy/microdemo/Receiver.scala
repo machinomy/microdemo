@@ -90,22 +90,22 @@ class XicityPaymentChannelServerListener(broadcaster: TransactionBroadcaster, wa
   private var eventHandler: XicityServerConnectionEventHandler = null
 
   def bindAndStart() = {
-    Peer.identifier = new Identifier(128)
-    Peer.start({
-      case Peer.ConnectedEvent() =>
-        println("CONNECTED ~~~~~~~~~~")
-        val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(128)))
-        eventHandler = newEventHandler
-        paymentChannelManager.connectionOpen()
-      case Peer.ReceivedEvent(from, to, message, expiration) =>
-        try {
-          socketProtobufHandler.setWriteTarget(new XicityWriteTarget(from))
-        } catch {
-          case _: Throwable => //pass
-        }
-        println(s"||||||||||||||||||| ${message.map("%02x".format(_)).mkString("")}")
-        socketProtobufHandler.receiveBytes(ByteBuffer.wrap(message))
-    })
+//    Peer.identifier = new Identifier(128)
+//    Peer.start({
+//      case Peer.ConnectedEvent() =>
+//        println("CONNECTED ~~~~~~~~~~")
+//        val newEventHandler: XicityServerConnectionEventHandler = eventHandlerFactory.onNewConnection(new XicityAddress(new Identifier(128)))
+//        eventHandler = newEventHandler
+//        paymentChannelManager.connectionOpen()
+//      case Peer.ReceivedEvent(from, to, message, expiration) =>
+//        try {
+//          socketProtobufHandler.setWriteTarget(new XicityWriteTarget(from))
+//        } catch {
+//          case _: Throwable => //pass
+//        }
+//        println(s"||||||||||||||||||| ${message.map("%02x".format(_)).mkString("")}")
+//        socketProtobufHandler.receiveBytes(ByteBuffer.wrap(message))
+//    })
   }
 }
 

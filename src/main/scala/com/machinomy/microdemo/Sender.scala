@@ -17,7 +17,6 @@ import org.bitcoinj.wallet.Protos.TransactionSigner
 
 object Sender extends App with LazyLogging {
   val serverHost = "localhost"
-  val serverPort = 8484
 
   val channelSize = Coin.MILLICOIN.multiply(5).multiply(10)
   val myKey = new ECKey()
@@ -122,21 +121,21 @@ object Sender extends App with LazyLogging {
     }, Protos.TwoWayChannelMessage.getDefaultInstance, Short.MaxValue, 15 * 1000)
 
 
-    Peer.identifier = new Identifier(34)
-    println("PEER START ...................")
-    Peer.start({
-      case Peer.ConnectedEvent() =>
-        try {
-          wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(128)))
-        } catch {
-          case _: Throwable => //pass
-        }
-        wireParser.connectionOpened()
-        println("CONNECTED ~~~~~~~~~~")
-
-
-      case Peer.ReceivedEvent(from, to, message, expiration) =>
-        wireParser.receiveBytes(ByteBuffer.wrap(message))
-    })
+//    Peer.identifier = new Identifier(34)
+    println("PEER START .....................")
+//    Peer.start({
+//      case Peer.ConnectedEvent() =>
+//        try {
+//          wireParser.setWriteTarget(new XicityWriteTarget(new Identifier(128)))
+//        } catch {
+//          case _: Throwable => //pass
+//        }
+//        wireParser.connectionOpened()
+//        println("CONNECTED ~~~~~~~~~~")
+//
+//
+//      case Peer.ReceivedEvent(from, to, message, expiration) =>
+//        wireParser.receiveBytes(ByteBuffer.wrap(message))
+//    })
   }
 }

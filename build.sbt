@@ -23,6 +23,6 @@ libraryDependencies ++= Seq(
   "io.argonaut" %% "argonaut" % "6.1",
   "org.slf4j" % "slf4j-simple" % "1.7.21",
   "net.tomp2p" % "tomp2p-all" % "5.0-Beta8",
-  "com.machinomy" %% "xicity" % "0.0.1-SNAPSHOT",
+  "com.machinomy" %% "xicity" % "0.0.2-SNAPSHOT",
   "com.github.nscala-time" %% "nscala-time" % "2.12.0"
 )
