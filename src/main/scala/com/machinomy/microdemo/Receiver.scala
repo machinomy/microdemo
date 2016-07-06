@@ -33,7 +33,7 @@ abstract class XicityServerConnectionEventHandler extends ServerConnectionEventH
 
 class XicityWriteTarget(identifier: Identifier) extends MessageWriteTarget {
   override def writeBytes(message: Array[Byte]): Unit = {
-    Peer.send(identifier, message)
+//    Peer.send(identifier, message)
   }
 
   override def closeConnection(): Unit = {

@@ -48,26 +48,29 @@ object Peer {
   }
 
   def start(system: ActorSystem) = {
-    actor = system.actorOf(Props(new PeerActor {
-      override def receive: Receive = {
-        case Node.IsReady() =>
-          log.info("NODEISREADY")
-          for {
-            (_, callbacks) <- listeners
-            callback <- callbacks
-          } callback(ConnectedEvent())
-        case m: Message.Shot =>
-          log.info(s"RECEIVEDSHOT $m")
-          for {
-            (protocol, callbacks) <- listeners
-            callback <- callbacks if protocol == m.protocol
-          } callback(ReceivedEvent(m.from, m.to, m.text, m.expiration))
+    actor = Option(actor) match {
+      case Some(ref) => ref
+      case None =>
+        system.actorOf(Props(new PeerActor {
+          override def receive: Receive = {
+            case Node.IsReady() =>
+              log.info("NODEISREADY")
+              for {
+                (_, callbacks) <- listeners
+                callback <- callbacks
+              } callback(ConnectedEvent())
+            case m: Message.Shot =>
+              log.info(s"RECEIVEDSHOT $m")
+              for {
+                (protocol, callbacks) <- listeners
+                callback <- callbacks if protocol == m.protocol
+              } callback(ReceivedEvent(m.from, m.to, m.text, m.expiration))
 
-        case InternalShot(to, protocol, message) =>
-          clientNodeActor ! Message.Shot(identifier, to, protocol, message, DateTime.now.getMillis / 1000 + 1.minute.seconds)
-      }
-    }))
-
+            case InternalShot(to, protocol, message) =>
+              clientNodeActor ! Message.Shot(identifier, to, protocol, message, DateTime.now.getMillis / 1000 + 1.minute.seconds)
+          }
+        }))
+    }
   }
 
   def send(to: Identifier, protocol: Long, message: Array[Byte]) = {
