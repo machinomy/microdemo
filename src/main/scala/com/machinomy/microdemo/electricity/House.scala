@@ -23,6 +23,7 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
   import context.dispatcher
 
   val QUANTUM = FiniteDuration(3.seconds.millis, duration.MILLISECONDS)
+  val EPSILON = 50
 
   val channels: mutable.Set[Sender] = mutable.Set.empty[Sender]
 
@@ -46,24 +47,24 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
             case Some(row) =>
               println(s"|||||--------------------> Received ow at ${new DateTime(row.timestamp)}: ${row.mapping.table}")
               val theirTime = new DateTime(row.timestamp)
-              if (theirTime.getMillis < currentRow.timestamp) {
+              if ((row.timestamp - currentRow.timestamp).abs > EPSILON) {
+                val timestamp = (row.timestamp + currentRow.timestamp)/2
+
                 println(s"|||||--------------------> Our schedule is lagging")
                 measureTick.cancel()
-                val nextTickDelta = QUANTUM.toMillis + row.timestamp - currentRow.timestamp
-                measureTick = context.system.scheduler.schedule(duration.FiniteDuration(nextTickDelta, duration.MILLISECONDS), QUANTUM, self, Participant.MeasureTick)
+                val nextTickDelta = QUANTUM.toMillis + timestamp - List(currentRow.timestamp, row.timestamp).min
+                measureTick = context.system.scheduler.schedule(duration.FiniteDuration(nextTickDelta, duration.MILLISECONDS), QUANTUM, self, Tick)
                 println(s"|||||--------------------> Adjusted MeasureTick")
-              }
-              currentRow = if (row.timestamp < currentRow.timestamp) {
-                val a = row.copy(mapping = currentRow.mapping.merge(row.mapping))
-//                disseminate(a)
-                val bytes = Codec.encode(a).toOption.get.toByteArray
+
+                currentRow = Row(timestamp, currentRow.mapping.merge(row.mapping))
+
+                //                disseminate(a)
+                val bytes = Codec.encode(currentRow).toOption.get.toByteArray
                 for (relation <- neighbours) {
                   Peer().send(relation.identifier, 2L, bytes)
                 }
-
-                a
               } else {
-                currentRow.copy(mapping = currentRow.mapping.merge(row.mapping))
+                currentRow = currentRow.copy(mapping =  currentRow.mapping.merge(row.mapping))
               }
 
               println(s"|||||--------------------> Got new row at ${new DateTime(currentRow.timestamp)}: ${currentRow.mapping.table}")
