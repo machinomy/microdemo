@@ -151,12 +151,22 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
       }
 
     case Tick =>
+      settle(currentRow.copy())
       currentRow = Row(DateTime.now.getMillis, PNCounter[Identifier, Production]().update(identifier, Production(currentMetrics.spent - currentMetrics.generated, 1)))
 
       val bytes = Codec.encode(currentRow).toOption.get.toByteArray
       for (relation <- neighbours) {
         Peer().send(relation.identifier, 2L, bytes)
       }
+  }
+
+  def settle(row: Row): Unit = {
+    println(s"||||||||||> Last row at ${row.timestamp}: ${row.mapping.table}")
+    println(s"Pre-Balance: ${row.mapping.value.volume}")
+    val balance = -1 * row.mapping.value.volume
+    val balanced = row.mapping.update(Identifier(-1), Production(balance, 40))
+    println(s"================================================")
+    println(s"||||||||||> Last row balanced: at ${row.timestamp}: ${balanced.table}")
   }
 }
 
