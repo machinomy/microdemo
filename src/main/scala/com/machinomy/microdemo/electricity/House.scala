@@ -5,7 +5,7 @@ import akka.actor._
 import com.machinomy.microdemo.communication.{Peer, ReceivedEvent}
 import com.machinomy.xicity.Identifier
 import com.machinomy.identity.{Chain, Link, Relation}
-import com.machinomy.microdemo.payments.{Receiver, Sender}
+import com.machinomy.microdemo.payments.{Receiver, Sender, Senders}
 import com.github.nscala_time.time.Imports._
 import org.bitcoinj.core.Coin
 import com.machinomy.consensus.{Participant, Production, Row}
@@ -25,7 +25,7 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
   val QUANTUM = FiniteDuration(3.seconds.millis, duration.MILLISECONDS)
   val EPSILON = 50
 
-  val channels: mutable.Map[Identifier, Sender] = mutable.Map.empty[Identifier, Sender]
+//  val channels: mutable.Map[Identifier, Sender] = mutable.Map.empty[Identifier, Sender]
 
   var neighbours: Set[Relation] = null
 
@@ -38,7 +38,7 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
   @throws[Exception](classOf[Exception])
   override def preStart(): Unit = {
     val peer = Peer(identifier)
-
+    val houseContext = context
     peer.whenConnected { (id: Identifier) =>
 
       println(s"Connected with identifier $id")
@@ -55,7 +55,7 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
                 if (measureTick != null)
                   measureTick.cancel()
                 val nextTickDelta = QUANTUM.toMillis + timestamp - List(currentRow.timestamp, row.timestamp).min
-                measureTick = context.system.scheduler.schedule(duration.FiniteDuration(nextTickDelta, duration.MILLISECONDS), QUANTUM, self, Tick)
+                measureTick = houseContext.system.scheduler.schedule(duration.FiniteDuration(nextTickDelta, duration.MILLISECONDS), QUANTUM, houseContext.self, Tick)
                 println(s"|||||--------------------> Adjusted MeasureTick")
 
                 currentRow = Row(timestamp, currentRow.mapping.merge(row.mapping))
@@ -96,8 +96,8 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
       f.onSuccess {
         case relations: Set[Relation] =>
-          println(relations)
-          neighbours = Set(Relation(Link("net.energy.belongs_to_grid"), Identifier(100)), Relation(Link("net.energy.belongs_to_grid"), Identifier(110))) //relations
+          println(s"House.preStart.onSuccess: $relations")
+          neighbours = Set(Relation(Link("net.energy.belongs_to_grid"), Identifier(100)), Relation(Link("net.energy.belongs_to_grid"), Identifier(110)), Relation(Link("net.energy.belongs_to_grid"), Identifier(120))) //relations
           receiver.start(peer)
 
           peer.registerListenerForProtocol(128, {
@@ -112,8 +112,9 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
           for (relation <- neighbours if relation.identifier != identifier) {
             val sender = new Sender(identifier, relation.identifier)
-            channels += relation.identifier -> sender
-              val cancellable: Cancellable = context.system.scheduler.schedule(FiniteDuration(0, "second"), FiniteDuration(30.seconds.millis, "ms")) {
+            Senders += sender
+//            channels += relation.identifier -> sender
+              val cancellable: Cancellable = houseContext.system.scheduler.schedule(FiniteDuration(0, "second"), FiniteDuration(30.seconds.millis, "ms")) {
                 peer.send(relation.identifier, 128, "Sender".getBytes)
               }
 
@@ -127,12 +128,14 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
                     sender.whenOpened { () =>
 //                      sender.send(Coin.MILLICOIN)
+//                      sender.channelClient.state()
 
-                      measureTick = context.system.scheduler.schedule(FiniteDuration(0, duration.SECONDS), QUANTUM, self, Tick)
+                      measureTick = houseContext.system.scheduler.schedule(FiniteDuration(0, duration.SECONDS), QUANTUM, houseContext.self, Tick)
                     }
                   }
               })
           }
+        case x => println(s"\n\n\n\n\n\n\t\t\t$x\n\n\n\n\n\n\n")
       }
     }
   }
@@ -152,7 +155,7 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
     case Messages.ShutDown() =>
       log.info("House is shutting down")
-      for ((_, channel) <- channels) {
+      for (channel <- Senders.members) {
         channel.close()
         channel.appKit.stopAsync()
       }
@@ -186,7 +189,11 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
           val moneys = consumed * averagePrice
           println(s"Paying $moneys to $destination")
           if (destination != Identifier(-1) && moneys > 0 && !moneys.isInfinity) {
-            channels(destination).send(Coin.valueOf((10 * moneys).toLong))
+            println(s"channels: ${Senders.members}")
+            Senders.findByServerIdentifier(destination) match {
+              case Some(value) => value.send(Coin.valueOf((10 * moneys).toLong))
+              case None => //pass
+            }
           }
           notifier ! Messages.PaymentHappened(destination, 10 * moneys)
 

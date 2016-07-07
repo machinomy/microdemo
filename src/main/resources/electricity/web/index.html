@@ -5,27 +5,41 @@
     <title>Electirc Demo</title>
     <script src="https://code.jquery.com/jquery-3.0.0.slim.min.js"></script>
     <script src="https://code.highcharts.com/highcharts.js"></script>
+
+    <style>
+        td {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
     <h1></h1>
 <pre></pre>
 
 <div id="container" style="height: 400px; display: inline-block; width: 45%;"></div>
-<div class="table" style="height: 400px; display: inline-block; width: 45%; float: right">
-    <!--<table>-->
-        <!--<thead>-->
-            <!--<tr>-->
-                <!--<th>House</th>-->
-                <!--<th>Summary kWh</th>-->
-                <!--<th>Price</th>-->
-            <!--</tr>-->
-        <!--</thead>-->
-        <!--<tbody>-->
-            <!--&lt;!&ndash;<tr>&ndash;&gt;-->
-                <!--&lt;!&ndash;<td></td>&ndash;&gt;-->
-            <!--&lt;!&ndash;</tr>&ndash;&gt;-->
-        <!--</tbody>-->
-    <!--</table>-->
+<div class="spents" style="height: 90vh; display: inline-block; width: 45%; float: right; overflow: scroll;">
+    <table style="width: 100%" cellspacing="2" border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>House</th>
+                <th>Summary kWh</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<div class="crdt">
+    <table style="width: 100%" cellspacing="2" border="1" cellpadding="5">
+        <thead>
+        <tr>
+            <th>House</th>
+            <th>Summary kWh</th>
+            <th>Price</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
 <script>
     $(function () {
@@ -34,15 +48,6 @@
                 useUTC : true
             }
         });
-
-//        $('#container').highcharts({
-//            series: [{
-//                type: 'scatter',
-//                data: []
-//            }]
-//        });
-//
-//        var chart = $('#container').highcharts();
 
         var chartingOptions = {
             chart: {
@@ -129,6 +134,10 @@
 
             if (/^ConsesusUpdate/.test(event.data)) {
                 var parts = event.data.replace(/^ConsesusUpdates\(Map\(((Identifier\((\d+)\)\s*\->\s*Production\((\d+\.\d+),(\d+\.\d+)\),?\s*)+)\)\)$/, "$1").split(", ").map(function (m) { return m.replace(/^Identifier\((\d+)\)\s*\->\s*Production\((\d+\.\d+),(\d+\.\d+)\)$/, "$1 $2 $3").split(" ").map(parseFloat) })
+                parts.forEach(function (row) {
+                    var tr = "<tr><td>House#" + row[0] + "</td><td>" + row[1] + "</td><td>" + row[2] + "</td></tr>";
+                    $(".crdt tbody").prepend(tr)
+                });
                 console.log(parts);
             }
 

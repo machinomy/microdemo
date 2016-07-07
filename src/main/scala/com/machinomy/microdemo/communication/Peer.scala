@@ -33,7 +33,7 @@ class Peer(identifier: Identifier, system: ActorSystem) {
   type PeerCallback = PeerEvent => Unit
   type ConnectCallback = Identifier => Unit
 
-  private var listeners: Map[Long, mutable.Set[PeerCallback]] = Map.empty[Long, mutable.Set[PeerCallback]]
+  private val listeners: mutable.Map[Long, mutable.Set[PeerCallback]] = mutable.Map.empty[Long, mutable.Set[PeerCallback]]
   private val connectListeners: mutable.Set[ConnectCallback] = mutable.Set.empty[ConnectCallback]
 
   private var isConnected = false
@@ -68,11 +68,7 @@ class Peer(identifier: Identifier, system: ActorSystem) {
   }))
 
   def registerListenerForProtocol(protocol: Long, callback: PeerCallback): Unit = {
-    if (!listeners.contains(protocol)) {
-      listeners += protocol -> mutable.Set.empty[PeerCallback]
-    }
-
-    listeners(protocol).add(callback)
+    listeners.update(protocol, listeners.getOrElse(protocol, mutable.Set.empty) + callback)
   }
 
   def whenConnected(fn: ConnectCallback) = {

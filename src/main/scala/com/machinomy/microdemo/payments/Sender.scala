@@ -17,7 +17,23 @@ import org.bitcoinj.params.TestNet3Params
 import org.bitcoinj.protocols.channels._
 import org.bitcoinj.wallet.Protos.TransactionSigner
 
-class Sender(identifier: Identifier, serverIdentifier: Identifier) extends LazyLogging {
+object Senders {
+
+  val members = mutable.Set.empty[Sender]
+
+  def +=(sender: Sender): Unit = {
+    members.add(sender)
+  }
+
+  def findByServerIdentifier(identifier: Identifier): Option[Sender] = {
+    members.find({ sender: Sender =>
+      sender.serverIdentifier == identifier
+    })
+  }
+
+}
+
+class Sender(val identifier: Identifier, val serverIdentifier: Identifier) extends LazyLogging {
   val channelSize = Coin.MILLICOIN.multiply(5).multiply(10)
   val myKey = new ECKey()
   val network = TestNet3Params.get()
@@ -90,6 +106,8 @@ class Sender(identifier: Identifier, serverIdentifier: Identifier) extends LazyL
   }
 
   def open(peer: Peer, protocol: Long): Unit = {
+
+    println("ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ")
 
     //lazy val
     channelClient = new PaymentChannelClient(appKit.wallet(), myKey, channelSize, Sha256Hash.of(serverSocketAddress.getBytes), PaymentChannelClient.DEFAULT_TIME_WINDOW, null, new IPaymentChannelClient.ClientConnection() {
