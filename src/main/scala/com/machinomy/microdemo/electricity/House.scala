@@ -8,16 +8,27 @@ import com.machinomy.identity.{Chain, Link, Relation}
 import com.machinomy.microdemo.payments.{Receiver, Sender}
 import com.github.nscala_time.time.Imports._
 import org.bitcoinj.core.Coin
-import com.machinomy.consensus.{Production, Row}
+import com.machinomy.consensus.{Participant, Production, Row}
 import com.machinomy.consensus.state.PNCounter
+import scodec.{Codec, DecodeResult}
+import scodec.bits.BitVector
 
+import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
+
+object Tick
 
 class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends Actor with ActorLogging {
 
+  import context.dispatcher
+
+  val QUANTUM = FiniteDuration(3.seconds.millis, duration.MILLISECONDS)
+
   val channels: mutable.Set[Sender] = mutable.Set.empty[Sender]
 
-  val row = new Row(DateTime.now.getMillis, PNCounter())
+  var neighbours: Set[Relation] = null
+
+  var measureTick: Cancellable = null
 
   implicit val system = context.system
 
@@ -29,13 +40,51 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
       println(s"Connected with identifier $id")
 
-      val chain = new Chain()
+      peer.registerListenerForProtocol(2, {
+        case ReceivedEvent(from, to, message, expiration) =>
+          Codec.decode[Row](BitVector(message)).toOption.map { f: DecodeResult[Row] => f.value } match {
+            case Some(row) =>
+              println(s"|||||--------------------> Received ow at ${new DateTime(row.timestamp)}: ${row.mapping.table}")
+              val theirTime = new DateTime(row.timestamp)
+              if (theirTime.getMillis < currentRow.timestamp) {
+                println(s"|||||--------------------> Our schedule is lagging")
+                measureTick.cancel()
+                val nextTickDelta = QUANTUM.toMillis + row.timestamp - currentRow.timestamp
+                measureTick = context.system.scheduler.schedule(duration.FiniteDuration(nextTickDelta, duration.MILLISECONDS), QUANTUM, self, Participant.MeasureTick)
+                println(s"|||||--------------------> Adjusted MeasureTick")
+              }
+              currentRow = if (row.timestamp < currentRow.timestamp) {
+                val a = row.copy(mapping = currentRow.mapping.merge(row.mapping))
+//                disseminate(a)
+                val bytes = Codec.encode(a).toOption.get.toByteArray
+                for (relation <- neighbours) {
+                  Peer().send(relation.identifier, 2L, bytes)
+                }
 
-      import scala.concurrent.ExecutionContext.Implicits.global
+                a
+              } else {
+                currentRow.copy(mapping = currentRow.mapping.merge(row.mapping))
+              }
+
+              println(s"|||||--------------------> Got new row at ${new DateTime(currentRow.timestamp)}: ${currentRow.mapping.table}")
+            /*if (row.mapping.get(identifier) != prevLastMeasure) {
+              println(s"|||||--------------------> Received row contains ${row.mapping.get(identifier)} for me, expected $lastMeasure")
+              val delta = implicitly[Numeric[Production]].minus(prevLastMeasure, row.mapping.get(identifier))
+              val nextMapping = row.mapping.increment(identifier, delta)
+              disseminate(row.timestamp, nextMapping)
+              sendingTick.cancel()
+              sendingTick = context.system.scheduler.schedule(2 * QUANTUM, QUANTUM, self, Participant.SendingTick)
+            }*/
+            case None => log.error(s"|||||--------------------> Achtung!!!! Got none instead of row")
+          }
+      })
+
+      val chain = new Chain()
 
       chain.ask(Identifier(345), Link("net.energy.belongs_to_grid")).onSuccess {
         case relations: Set[Relation] =>
           println(relations)
+          neighbours = relations
 
           val receiver = new Receiver(identifier)
           receiver.start(peer)
@@ -67,8 +116,8 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
                     sender.whenOpened { () =>
 //                      sender.send(Coin.MILLICOIN)
-                      val nextMapping = PNCounter().update(identifier, Production(0, 1))
-                      row.mapping.merge(nextMapping)
+
+                      measureTick = context.system.scheduler.schedule(FiniteDuration(0, duration.SECONDS), QUANTUM, self, Tick)
                     }
                   }
               })
@@ -77,6 +126,9 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
     }
   }
 
+  var currentMetrics: ElectricMetrics = null
+  var currentRow: Row = Row(DateTime.now.getMillis, PNCounter[Identifier, Production]())
+
   override def receive: Receive = {
 
     case Messages.Start() =>
@@ -84,10 +136,11 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
       meter ! Messages.Start()
 
     case msg @ Messages.NewReadings(metrics) =>
-      log.info(s"New Readings: \n\tgenerated: ${metrics.generated.formatted("%.3f")} kWh\n\tspent: ${metrics.spent.formatted("%.3f")} kWh")
+      currentMetrics = metrics
+//      log.info(s"New Readings: \n\tgenerated: ${metrics.generated.formatted("%.3f")} kWh\n\tspent: ${metrics.spent.formatted("%.3f")} kWh")
 
-      val nextMapping = PNCounter().update(identifier, Production(0, metrics.spent - metrics.generated))
-      row.mapping.merge(nextMapping)
+//      val nextMapping = PNCounter().update(identifier, Production(0, metrics.spent - metrics.generated))
+//      row.mapping.merge(nextMapping)
 
       notifier ! msg
 
@@ -95,6 +148,14 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
       log.info("House is shutting down")
       for (channel <- channels) {
         channel.close()
+      }
+
+    case Tick =>
+      currentRow = Row(DateTime.now.getMillis, PNCounter[Identifier, Production]().update(identifier, Production(currentMetrics.spent - currentMetrics.generated, 1)))
+
+      val bytes = Codec.encode(currentRow).toOption.get.toByteArray
+      for (relation <- neighbours) {
+        Peer().send(relation.identifier, 2L, bytes)
       }
   }
 }
