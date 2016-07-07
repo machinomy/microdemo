@@ -46,7 +46,6 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
           Codec.decode[Row](BitVector(message)).toOption.map { f: DecodeResult[Row] => f.value } match {
             case Some(row) =>
               println(s"|||||--------------------> Received ow at ${new DateTime(row.timestamp)}: ${row.mapping.table}")
-              val theirTime = new DateTime(row.timestamp)
               if ((row.timestamp - currentRow.timestamp).abs > EPSILON) {
                 val timestamp = (row.timestamp + currentRow.timestamp)/2
 
