@@ -1,0 +1,5 @@
+package com.machinomy.microdemo.payments.overrides
+
+import org.bitcoinj.protocols.channels.ServerConnectionEventHandler
+
+abstract class XicityServerConnectionEventHandler extends ServerConnectionEventHandler

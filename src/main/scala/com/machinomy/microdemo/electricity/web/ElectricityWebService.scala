@@ -30,7 +30,7 @@ trait ElectricityWebService extends Directives {
                 .collect({
                   case TextMessage.Strict(text) => text
                 })
-                .via(webSocketManager.chatFlow(name))
+                .via(webSocketManager.webSocketFlow(name))
                 .map({
                   case WebSocketMessage(_, text) =>
                     TextMessage.Strict(text)

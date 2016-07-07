@@ -5,6 +5,7 @@ import akka.stream.ActorMaterializer
 import akka.http.scaladsl.Http
 import com.machinomy.microdemo.electricity.web.{ElectricityWebService, WebSocketMessage}
 import com.machinomy.microdemo.electricity.{ElectricMeter, House, Messages}
+import com.machinomy.xicity.Identifier
 
 object Electricity extends App with ElectricityWebService {
 
@@ -22,10 +23,28 @@ object Electricity extends App with ElectricityWebService {
 
     val electricMeter = system.actorOf(ElectricMeter.props())
 
-    system.actorOf(House.props(electricMeter, notifier))
+    val identifierNumber = {
+      try {
+        args(1).toLong
+      } catch {
+        case _: IndexOutOfBoundsException => args(0).toLong
+      }
+    }
+
+    println(s"\nElectricity: ${Identifier(identifierNumber)}\n")
+
+    system.actorOf(House.props(electricMeter, notifier, Identifier(identifierNumber)))
   }
 
-  Http().bindAndHandle(route, "localhost", 8888)
+  try {
+    Http().bindAndHandle(route, "localhost", 8888)
+  } catch {
+    case _: Throwable => //pass
+  }
 
   house ! Messages.Start()
+
+  sys addShutdownHook {
+    house ! Messages.ShutDown()
+  }
 }

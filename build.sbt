@@ -19,10 +19,11 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-core" % "2.4.5",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.4.5",
   "com.typesafe.akka" %% "akka-stream" % "2.4.5",
-    "com.github.nscala-time" %% "nscala-time" % "2.10.0",
   "io.argonaut" %% "argonaut" % "6.1",
   "org.slf4j" % "slf4j-simple" % "1.7.21",
   "net.tomp2p" % "tomp2p-all" % "5.0-Beta8",
+  "com.github.nscala-time" %% "nscala-time" % "2.12.0",
+
   "com.machinomy" %% "xicity" % "0.0.2-SNAPSHOT",
-  "com.github.nscala-time" %% "nscala-time" % "2.12.0"
+  "com.machinomy" %% "consensus" % "0.0.1-SNAPSHOT"
 )
