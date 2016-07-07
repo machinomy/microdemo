@@ -178,7 +178,7 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
     println(s"================================================")
     println(s"||||||||||> Last row balanced: at ${row.timestamp}: ${balanced.table}")
     val total = if (row.mapping.value.volume == 0) 1 else row.mapping.value.volume
-    val averagePrice = balanced.table.values.map(p => p.volume * p.cost).sum / total
+    val averagePrice = -1 * balanced.table.values.map(p => p.volume * p.cost).sum / total
     val consumed: Double = balanced.table.get(identifier).map(_.volume).getOrElse(0)
     for (destination <- balanced.table.keys.toSet - identifier) {
       balanced.table.get(destination) match { // to
