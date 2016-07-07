@@ -168,10 +168,11 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
     println(s"================================================")
     println(s"||||||||||> Last row balanced: at ${row.timestamp}: ${balanced.table}")
     val averagePrice = balanced.table.values.map(p => p.volume * p.cost).sum / balanced.table.values.map(_.volume).sum
+    val consumed: Double = balanced.table.get(identifier).map(_.volume).getOrElse(0)
     for (destination <- balanced.table.keys.toSet - identifier) {
       balanced.table.get(destination) match {
         case Some(production) =>
-          val moneys = production.volume * averagePrice
+          val moneys = consumed * averagePrice
           println(s"Paying $moneys to $destination")
         case None =>
       }
