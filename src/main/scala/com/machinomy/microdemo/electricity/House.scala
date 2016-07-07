@@ -167,6 +167,16 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
     val balanced = row.mapping.update(Identifier(-1), Production(balance, 40))
     println(s"================================================")
     println(s"||||||||||> Last row balanced: at ${row.timestamp}: ${balanced.table}")
+    val averagePrice = balanced.table.values.map(p => p.volume * p.cost).sum / balanced.table.values.map(_.volume).sum
+    for (destination <- balanced.table.keys.toSet - identifier) {
+      balanced.table.get(destination) match {
+        case Some(production) =>
+          val moneys = production.volume * averagePrice
+          println(s"Paying $moneys to $destination")
+        case None =>
+      }
+    }
+    println(s"================================================")
   }
 }
 
