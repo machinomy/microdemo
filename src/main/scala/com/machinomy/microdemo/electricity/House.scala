@@ -25,11 +25,13 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
   val QUANTUM = FiniteDuration(3.seconds.millis, duration.MILLISECONDS)
   val EPSILON = 50
 
-  val channels: mutable.Set[Sender] = mutable.Set.empty[Sender]
+  val channels: mutable.Map[Identifier, Sender] = mutable.Map.empty[Identifier, Sender]
 
   var neighbours: Set[Relation] = null
 
   var measureTick: Cancellable = null
+
+  val receiver: Receiver = new Receiver(identifier)
 
   implicit val system = context.system
 
@@ -50,7 +52,8 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
                 val timestamp = (row.timestamp + currentRow.timestamp)/2
 
                 println(s"|||||--------------------> Our schedule is lagging")
-                measureTick.cancel()
+                if (measureTick != null)
+                  measureTick.cancel()
                 val nextTickDelta = QUANTUM.toMillis + timestamp - List(currentRow.timestamp, row.timestamp).min
                 measureTick = context.system.scheduler.schedule(duration.FiniteDuration(nextTickDelta, duration.MILLISECONDS), QUANTUM, self, Tick)
                 println(s"|||||--------------------> Adjusted MeasureTick")
@@ -81,12 +84,20 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
       val chain = new Chain()
 
-      chain.ask(Identifier(345), Link("net.energy.belongs_to_grid")).onSuccess {
+      if (chain == null) {
+        println("\n\n\n\n\n\n\t\t\tWAAAAAT?!\n\n\n\n\n\n\n")
+      }
+
+      val f = chain.ask(Identifier(345), Link("net.energy.belongs_to_grid"))
+
+      if (f == null) {
+        println("\n\n\n\n\n\n\t\t\tAAAAAASK?!\n\n\n\n\n\n\n")
+      }
+
+      f.onSuccess {
         case relations: Set[Relation] =>
           println(relations)
-          neighbours = relations
-
-          val receiver = new Receiver(identifier)
+          neighbours = Set(Relation(Link("net.energy.belongs_to_grid"), Identifier(100)), Relation(Link("net.energy.belongs_to_grid"), Identifier(110))) //relations
           receiver.start(peer)
 
           peer.registerListenerForProtocol(128, {
@@ -99,9 +110,9 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
               }
           })
 
-          for (relation <- relations if relation.identifier != identifier) {
-            val sender = new Sender(relation.identifier)
-            channels.add(sender)
+          for (relation <- neighbours if relation.identifier != identifier) {
+            val sender = new Sender(identifier, relation.identifier)
+            channels += relation.identifier -> sender
               val cancellable: Cancellable = context.system.scheduler.schedule(FiniteDuration(0, "second"), FiniteDuration(30.seconds.millis, "ms")) {
                 peer.send(relation.identifier, 128, "Sender".getBytes)
               }
@@ -137,18 +148,15 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
 
     case msg @ Messages.NewReadings(metrics) =>
       currentMetrics = metrics
-//      log.info(s"New Readings: \n\tgenerated: ${metrics.generated.formatted("%.3f")} kWh\n\tspent: ${metrics.spent.formatted("%.3f")} kWh")
-
-//      val nextMapping = PNCounter().update(identifier, Production(0, metrics.spent - metrics.generated))
-//      row.mapping.merge(nextMapping)
-
       notifier ! msg
 
     case Messages.ShutDown() =>
       log.info("House is shutting down")
-      for (channel <- channels) {
+      for ((_, channel) <- channels) {
         channel.close()
+        channel.appKit.stopAsync()
       }
+      receiver.appKit.stopAsync()
 
     case Tick =>
       settle(currentRow.copy())
@@ -161,6 +169,8 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
   }
 
   def settle(row: Row): Unit = {
+    notifier ! Messages.ConsesusUpdates(row.mapping.table)
+
     println(s"||||||||||> Last row at ${row.timestamp}: ${row.mapping.table}")
     println(s"Pre-Balance: ${row.mapping.value.volume}")
     val balance = -1 * row.mapping.value.volume
@@ -171,10 +181,15 @@ class House(meter: ActorRef, notifier: ActorRef, identifier: Identifier) extends
     val averagePrice = balanced.table.values.map(p => p.volume * p.cost).sum / total
     val consumed: Double = balanced.table.get(identifier).map(_.volume).getOrElse(0)
     for (destination <- balanced.table.keys.toSet - identifier) {
-      balanced.table.get(destination) match {
+      balanced.table.get(destination) match { // to
         case Some(production) =>
           val moneys = consumed * averagePrice
           println(s"Paying $moneys to $destination")
+          if (destination != Identifier(-1) && moneys > 0 && !moneys.isInfinity) {
+            channels(destination).send(Coin.valueOf((10 * moneys).toLong))
+          }
+          notifier ! Messages.PaymentHappened(destination, 10 * moneys)
+
         case None =>
       }
     }

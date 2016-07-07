@@ -17,8 +17,8 @@ import org.bitcoinj.params.TestNet3Params
 import org.bitcoinj.protocols.channels._
 import org.bitcoinj.wallet.Protos.TransactionSigner
 
-class Sender(serverIdentifier: Identifier) extends LazyLogging {
-  val channelSize = Coin.MILLICOIN.multiply(10).multiply(10)
+class Sender(identifier: Identifier, serverIdentifier: Identifier) extends LazyLogging {
+  val channelSize = Coin.MILLICOIN.multiply(5).multiply(10)
   val myKey = new ECKey()
   val network = TestNet3Params.get()
   val timeout = 15
@@ -27,7 +27,7 @@ class Sender(serverIdentifier: Identifier) extends LazyLogging {
   type OpenChannelCallback = () => Unit
   val listeners: mutable.Set[OpenChannelCallback] = mutable.Set.empty[OpenChannelCallback]
 
-  class SendingWallet extends WalletAppKit(network, new File("sender"), s"sender_$serverIdentifier") {
+  class SendingWallet extends WalletAppKit(network, new File("sender"), s"sender_${identifier.n}_${serverIdentifier.n}") {
     override def provideWalletExtensions() = {
       ImmutableList.of[WalletExtension](new StoredPaymentChannelClientStates(null))
     }

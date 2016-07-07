@@ -24,6 +24,8 @@ class Receiver(identifier: Identifier) {
 
   val minimumDeposit = 100000
   val appKit = new ReceivingWallet()
+  appKit.startAsync()
+  appKit.awaitRunning()
 
   type ReceiverCallback = () => Unit
 
@@ -70,9 +72,6 @@ class Receiver(identifier: Identifier) {
   }
 
   def start(peer: Peer) = {
-    appKit.startAsync()
-    appKit.awaitRunning()
-
     val handler = new Handler()
 
     val serverListener = new XicityPaymentChannelServerListener(appKit.peerGroup(), appKit.wallet(), 15, Coin.valueOf(minimumDeposit), handler)

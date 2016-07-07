@@ -7,29 +7,136 @@
     <script src="https://code.highcharts.com/highcharts.js"></script>
 </head>
 <body>
-    <h1>Hello World</h1>
+    <h1></h1>
 <pre></pre>
 
-<div id="container" style="width:100%; height:400px;"></div>
+<div id="container" style="height: 400px; display: inline-block; width: 45%;"></div>
+<div class="table" style="height: 400px; display: inline-block; width: 45%; float: right">
+    <!--<table>-->
+        <!--<thead>-->
+            <!--<tr>-->
+                <!--<th>House</th>-->
+                <!--<th>Summary kWh</th>-->
+                <!--<th>Price</th>-->
+            <!--</tr>-->
+        <!--</thead>-->
+        <!--<tbody>-->
+            <!--&lt;!&ndash;<tr>&ndash;&gt;-->
+                <!--&lt;!&ndash;<td></td>&ndash;&gt;-->
+            <!--&lt;!&ndash;</tr>&ndash;&gt;-->
+        <!--</tbody>-->
+    <!--</table>-->
+</div>
 <script>
     $(function () {
-        $('#container').highcharts({
-            chart: {
-                type: "line"
+        Highcharts.setOptions({
+            global : {
+                useUTC : true
             }
         });
-    });
 
-    document.addEventListener("DOMContentLoaded", function () {
+//        $('#container').highcharts({
+//            series: [{
+//                type: 'scatter',
+//                data: []
+//            }]
+//        });
+//
+//        var chart = $('#container').highcharts();
+
+        var chartingOptions = {
+            chart: {
+                renderTo: 'container',
+                type: 'spline'
+            },
+            series: [
+                {
+                    name: 'spent',
+                    data: []
+                },
+
+                {
+                    name: "generated",
+                    data: []
+                }
+            ],
+            xAxis: {
+                title: {
+                    enabled: true,
+                    text: 'Hours of the Day'
+                },
+                type: 'datetime',
+
+                dateTimeLabelFormats : {
+                    hour: '%I %p',
+                    minute: '%I:%M %p'
+                },
+                min: Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0, 0),
+                max: Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 23, 59, 59, 999)
+            },
+            yAxis: {
+                title: {
+                    enabled: true,
+                    text: 'kWh'
+                }
+            }
+
+        };
+        window.chart = new Highcharts.Chart(chartingOptions);
+        $("#btn").click(function() {
+            var id = ['point3', 'point4', 'point5'],
+                    y = [0, 1, 2],
+                    x = [1, 2, 3];
+
+            for (var i = 0; i < x.length; i++) {
+                chart.series[0].addPoint({
+                    x: x[i],
+                    y: y[i],
+                    id: id[i]
+                },false);
+            }
+            chart.redraw();
+        });
+
         var uniqueId = new Array(16)
                         .join()
                         .split(",")
-                        .map((m) => Math.random() * 25 + 65)
-                        .map((m) => ~~m).map((m) => String.fromCharCode(m)).join("")
-        var ws = new WebSocket("ws://127.0.0.1:8888/ws?name=" + uniqueId);
+                        .map(function () { return Math.random() * 25 + 65 })
+                        .map(function (m) { return ~~m })
+                        .map(function (m) { return String.fromCharCode(m) })
+                        .join("");
+        var ws = new WebSocket("ws://" + location.hostname + ":" + location.port + "/ws?name=" + uniqueId);
 
         ws.onmessage = function (event) {
-            document.querySelector("pre").innerHTML += event.data + "\n";
+            if (/^NewReadings\(ElectricMetrics/.test(event.data)) {
+                var points = event.data.replace(/^NewReadings\(ElectricMetrics\((\d+\.\d+),(\d+\.\d+),(\d+)\)\)$/, "$1 $2 $3").split(" ").map(function(m) { return parseFloat(m) });
+//            console.log(points);
+                chart.series[0].addPoint({
+                    y: points[1],
+                    x: Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), ~~(points[2] / 1000 / 3600), ((points[2] / 1000 / 3600) - ~~(points[2] / 1000 / 3600)) * 60, 0, 0)
+                }, false);
+                chart.series[1].addPoint({
+                    y: points[0],
+                    x: Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), ~~(points[2] / 1000 / 3600), ((points[2] / 1000 / 3600) - ~~(points[2] / 1000 / 3600)) * 60, 0, 0)
+                });
+                chart.redraw();
+            }
+
+            if (/^Identifier/.test(event.data)) {
+                var identifier = event.data.replace(/^Identifier\((\d+)\)$/, "$1");
+                $("h1").text("House#" + identifier)
+            }
+
+            if (/^ConsesusUpdate/.test(event.data)) {
+                var parts = event.data.replace(/^ConsesusUpdates\(Map\(((Identifier\((\d+)\)\s*\->\s*Production\((\d+\.\d+),(\d+\.\d+)\),?\s*)+)\)\)$/, "$1").split(", ").map(function (m) { return m.replace(/^Identifier\((\d+)\)\s*\->\s*Production\((\d+\.\d+),(\d+\.\d+)\)$/, "$1 $2 $3").split(" ").map(parseFloat) })
+                console.log(parts);
+            }
+
+            if (/^PaymentHappened/.test(event.data)) {
+//                var parts = event.data.replace()
+                console.log(event.data);
+            }
+            // "ConsesusUpdates(Map(Identifier(110) -> Production(337.5054775419841,1.0)))"
         }
     });
 </script>

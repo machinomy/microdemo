@@ -1,6 +1,8 @@
 package com.machinomy.microdemo.electricity.web
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import com.machinomy.microdemo.Electricity
+import com.machinomy.xicity.Identifier
 
 class WebSocketParticipants extends Actor with ActorLogging {
 
@@ -9,6 +11,7 @@ class WebSocketParticipants extends Actor with ActorLogging {
   override def receive: Receive = {
     case ParticipantJoined(name, actor) =>
       participants += name -> actor
+      actor ! WebSocketMessage("", Identifier(Electricity.identifierNumber).toString)
       log.debug(s"New WS user: $name")
 
     case ParticipantLeft(name) =>

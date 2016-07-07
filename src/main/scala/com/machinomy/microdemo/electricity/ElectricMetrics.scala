@@ -4,7 +4,7 @@ import com.github.nscala_time.time.Imports._
 
 import scala.util.Random
 
-case class ElectricMetrics(generated: Double = 0, spent: Double = 0)
+case class ElectricMetrics(generated: Double = 0, spent: Double = 0, time: Long = 0)
 
 object ElectricMetrics {
 
@@ -32,8 +32,14 @@ object ElectricMetrics {
 
   private def generated(time: Long): Double = {
 
-    val yExtrema = (0d, 400d)
-    val xExtrema = ((math.sqrt(1800) - math.sqrt(300)) / 3, (math.sqrt(1800) + math.sqrt(300)) / 3)
+    //850 - (x - 200^0.5)^2 * 24
+
+//    ((20736^2*200+4*20736+414765)^0.5+20736) / (2 * 20736)
+    //(-(20736^2*200+4*20736+414765)^0.5-20736) / -(2 * 20736)
+
+
+    val yExtrema = (0d, 840d)
+    val xExtrema = (math.sqrt(200) - math.sqrt(35), math.sqrt(200) + math.sqrt(35))
 
     def withDeviation(x: Double): Double = {
       val deviation = x * 0.1
@@ -42,17 +48,17 @@ object ElectricMetrics {
     }
 
     def kwh(x: Double) = {
-      math.max(yExtrema._2 - math.pow(x - math.sqrt(200), 2) * 12, 0)
+      math.max(yExtrema._2 - math.pow(x - math.sqrt(200), 2) * 24, 0)
     }
 
-    def spread(x: Long) = {
-      (xExtrema._2 + xExtrema._1) / 24.hours.millis * x
+    def spread(x: Long): Double = {
+      (x.toDouble / 3600 / 1000) % 24
     }
 
     withDeviation(kwh(spread(time)))
   }
 
   def random(time: Long): ElectricMetrics = {
-    ElectricMetrics(generated(time), spent(time))
+    ElectricMetrics(generated(time), spent(time), time)
   }
 }
